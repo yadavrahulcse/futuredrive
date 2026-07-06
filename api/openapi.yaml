@@ -1,32 +1,209 @@
 openapi: 3.0.0
 info:
   title: FutureDrive API (MVP)
-  version: "0.1.0"
-  description: Minimal OpenAPI spec placeholder for auth and ride flows. Expand as needed.
+  version: "0.2.0"
+  description: Expanded OpenAPI spec for FutureDrive MVP: auth, users, drivers, rides, quotes, bookings, payments, messaging, and admin operations.
 servers:
   - url: https://api.futuredrive.example.com
+security:
+  - bearerAuth: []
 paths:
   /auth/send-otp:
     post:
-      summary: Send OTP to phone (SMS/WhatsApp)
+      summary: Send OTP to phone (WhatsApp preferred, fallback to SMS)
+      tags: [Auth]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                phone:
-                  type: string
-                via:
-                  type: string
-                  enum: [whatsapp, sms]
+              $ref: '#/components/schemas/SendOtpRequest'
       responses:
         '200':
-          description: OTP sent
+          description: OTP queued for delivery
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendOtpResponse'
   /auth/verify-otp:
     post:
       summary: Verify OTP and create session
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+      responses:
+        '200':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+  /users/me:
+    get:
+      summary: Get current user profile
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /drivers/register:
+    post:
+      summary: Driver signup and document upload (multipart)
+      tags: [Drivers]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                vehicle_number:
+                  type: string
+                vehicle_model:
+                  type: string
+                license:
+                  type: string
+                  format: binary
+                rc:
+                  type: string
+                  format: binary
+                aadhaar:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Driver created (pending verification)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+  /rides:
+    post:
+      summary: Create a ride request (passenger)
+      tags: [Rides]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRideRequest'
+      responses:
+        '201':
+          description: Ride created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ride'
+    get:
+      summary: Search/list passenger rides
+      tags: [Rides]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+      responses:
+        '200':
+          description: list of rides
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ride'
+  /rides/{rideId}/quotes:
+    post:
+      summary: Driver posts a quote for a ride
+      tags: [Quotes]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: rideId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQuoteRequest'
+      responses:
+        '201':
+          description: Quote created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Quote'
+    get:
+      summary: List quotes for a ride (passenger view)
+      tags: [Quotes]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: rideId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: list of quotes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Quote'
+  /quotes/{quoteId}/select:
+    post:
+      summary: Passenger selects a quote -> creates booking
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: quoteId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+  /bookings/{bookingId}/verify-otp:
+    post:
+      summary: Driver verifies passenger OTP to start ride
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: bookingId
+          required: true
+          schema:
+            type: integer
       requestBody:
         required: true
         content:
@@ -34,16 +211,27 @@ paths:
             schema:
               type: object
               properties:
-                phone:
-                  type: string
                 otp:
                   type: string
       responses:
         '200':
-          description: Session created
-  /rides:
+          description: OTP validated and booking started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+  /bookings/{bookingId}/cancel:
     post:
-      summary: Create a ride request
+      summary: Cancel a booking (passenger or driver)
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: bookingId
+          required: true
+          schema:
+            type: integer
       requestBody:
         required: true
         content:
@@ -51,22 +239,282 @@ paths:
             schema:
               type: object
               properties:
-                passenger_id:
-                  type: integer
-                pickup_lat:
-                  type: number
-                pickup_lng:
-                  type: number
-                drop_lat:
-                  type: number
-                drop_lng:
-                  type: number
+                reason:
+                  type: string
+                cancelled_by:
+                  type: string
+                  enum: [passenger, driver, system]
+      responses:
+        '200':
+          description: Booking cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+  /payments:
+    post:
+      summary: Record payment (UPI) webhook or create payment intent
+      tags: [Payments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
       responses:
         '201':
-          description: Ride created
+          description: Payment recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+  /messages:
+    post:
+      summary: Send mediated message (passenger <-> driver via server)
+      tags: [Messaging]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+      responses:
+        '201':
+          description: Message queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+  /admin/drivers:
+    get:
+      summary: Admin: list drivers and KYC status
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: list of drivers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Driver'
+  /admin/bookings:
+    get:
+      summary: Admin: list bookings with filters
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+      responses:
+        '200':
+          description: list of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Booking'
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  schemas:
+    SendOtpRequest:
+      type: object
+      required: [phone]
+      properties:
+        phone:
+          type: string
+        via:
+          type: string
+          enum: [whatsapp, sms]
+    SendOtpResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        method:
+          type: string
+    VerifyOtpRequest:
+      type: object
+      required: [phone, otp]
+      properties:
+        phone:
+          type: string
+        otp:
+          type: string
+    Session:
+      type: object
+      properties:
+        token:
+          type: string
+        expires_in:
+          type: integer
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        phone:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        language:
+          type: string
+    Driver:
+      type: object
+      properties:
+        id:
+          type: integer
+        phone:
+          type: string
+        name:
+          type: string
+        vehicle_number:
+          type: string
+        vehicle_model:
+          type: string
+        rating:
+          type: number
+        kyc_status:
+          type: string
+    CreateRideRequest:
+      type: object
+      required: [pickup_lat, pickup_lng, drop_lat, drop_lng]
+      properties:
+        pickup_lat:
+          type: number
+        pickup_lng:
+          type: number
+        drop_lat:
+          type: number
+        drop_lng:
+          type: number
+        notes:
+          type: string
+    Ride:
+      type: object
+      properties:
+        id:
+          type: integer
+        passenger_id:
+          type: integer
+        pickup_lat:
+          type: number
+        pickup_lng:
+          type: number
+        drop_lat:
+          type: number
+        drop_lng:
+          type: number
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    CreateQuoteRequest:
+      type: object
+      required: [amount]
+      properties:
+        driver_id:
+          type: integer
+        amount:
+          type: number
+        eta_minutes:
+          type: integer
+    Quote:
+      type: object
+      properties:
+        id:
+          type: integer
+        ride_id:
+          type: integer
+        driver_id:
+          type: integer
+        amount:
+          type: number
+        eta_minutes:
+          type: integer
+        expires_at:
+          type: string
+          format: date-time
+    Booking:
+      type: object
+      properties:
+        id:
+          type: integer
+        ride_id:
+          type: integer
+        quote_id:
+          type: integer
+        driver_id:
+          type: integer
+        status:
+          type: string
+        otp_required:
+          type: boolean
+        otp_expires_at:
+          type: string
+          format: date-time
+    PaymentRequest:
+      type: object
+      required: [booking_id, amount]
+      properties:
+        booking_id:
+          type: integer
+        amount:
+          type: number
+        provider:
+          type: string
+        provider_transaction_id:
+          type: string
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        booking_id:
+          type: integer
+        amount:
+          type: number
+        status:
+          type: string
+    MessageRequest:
+      type: object
+      required: [booking_id, sender_type, content]
+      properties:
+        booking_id:
+          type: integer
+        sender_type:
+          type: string
+          enum: [passenger, driver, system]
+        content:
+          type: string
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        booking_id:
+          type: integer
+        sender_type:
+          type: string
+        sender_id:
+          type: integer
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
