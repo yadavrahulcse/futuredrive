@@ -1,0 +1,17 @@
+{
+  "welcome": "FutureDrive में आपका स्वागत है",
+  "login_phone": "मोबाइल नंबर दर्ज करें",
+  "send_otp": "OTP भेजें",
+  "verify_otp": "OTP सत्यापित करें",
+  "book_ride": "राइड बुक करें",
+  "pickup": "पिकअप स्थान",
+  "drop": "ड्रॉप स्थान",
+  "confirm_booking": "बुकिंग पुष्टि करें",
+  "cancel": "रद्द करें",
+  "resend_otp": "OTP पुनः भेजें",
+  "driver_quotes": "ड्राइवर उद्धरण",
+  "select_driver": "ड्राइवर चुनें",
+  "start_ride": "राइड शुरू करें",
+  "sos": "एसओएस",
+  "language_toggle": "भाषा"
+}

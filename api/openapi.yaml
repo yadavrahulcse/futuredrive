@@ -1,0 +1,72 @@
+openapi: 3.0.0
+info:
+  title: FutureDrive API (MVP)
+  version: "0.1.0"
+  description: Minimal OpenAPI spec placeholder for auth and ride flows. Expand as needed.
+servers:
+  - url: https://api.futuredrive.example.com
+paths:
+  /auth/send-otp:
+    post:
+      summary: Send OTP to phone (SMS/WhatsApp)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                via:
+                  type: string
+                  enum: [whatsapp, sms]
+      responses:
+        '200':
+          description: OTP sent
+  /auth/verify-otp:
+    post:
+      summary: Verify OTP and create session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                otp:
+                  type: string
+      responses:
+        '200':
+          description: Session created
+  /rides:
+    post:
+      summary: Create a ride request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                passenger_id:
+                  type: integer
+                pickup_lat:
+                  type: number
+                pickup_lng:
+                  type: number
+                drop_lat:
+                  type: number
+                drop_lng:
+                  type: number
+      responses:
+        '201':
+          description: Ride created
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

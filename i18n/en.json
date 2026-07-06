@@ -1,0 +1,17 @@
+{
+  "welcome": "Welcome to FutureDrive",
+  "login_phone": "Enter mobile number",
+  "send_otp": "Send OTP",
+  "verify_otp": "Verify OTP",
+  "book_ride": "Book Ride",
+  "pickup": "Pickup location",
+  "drop": "Drop location",
+  "confirm_booking": "Confirm Booking",
+  "cancel": "Cancel",
+  "resend_otp": "Resend OTP",
+  "driver_quotes": "Driver Quotes",
+  "select_driver": "Select Driver",
+  "start_ride": "Start Ride",
+  "sos": "SOS",
+  "language_toggle": "Language"
+}
