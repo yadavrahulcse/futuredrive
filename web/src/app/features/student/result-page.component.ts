@@ -1,8 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { MockPlatformService } from '../../core/services/mock-platform.service';
 import { LanguageService } from '../../core/services/language.service';
@@ -10,7 +10,7 @@ import { LanguageService } from '../../core/services/language.service';
 @Component({
   selector: 'app-result-page',
   standalone: true,
-  imports: [MatButtonModule, MatCardModule, RouterLink, TranslateModule],
+  imports: [MatButtonModule, MatCardModule, RouterLink, TranslatePipe],
   template: `
     <section class="space-y-6 px-4 py-8 lg:px-8">
       <div class="grid gap-6 lg:grid-cols-4">
@@ -56,14 +56,11 @@ import { LanguageService } from '../../core/services/language.service';
   `
 })
 export class ResultPageComponent {
+  private readonly platform = inject(MockPlatformService);
+  private readonly languageService = inject(LanguageService);
   readonly result = this.platform.activeResult();
 
-  constructor(
-    private readonly platform: MockPlatformService,
-    private readonly languageService: LanguageService
-  ) {}
-
   localizedText(text: Record<string, string>): string {
-    return text[this.languageService.current] ?? text.en ?? Object.values(text)[0] ?? '';
+    return text[this.languageService.current] ?? text['en'] ?? Object.values(text)[0] ?? '';
   }
 }

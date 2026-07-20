@@ -1,17 +1,17 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { MockPlatformService } from '../../core/services/mock-platform.service';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [MatButtonModule, MatCardModule, MatChipsModule, MatDividerModule, MatTabsModule, TranslateModule],
+  imports: [MatButtonModule, MatCardModule, MatChipsModule, MatDividerModule, MatTabsModule, TranslatePipe],
   template: `
     <section class="space-y-6 px-4 py-8 lg:px-8">
       <div class="rounded-3xl bg-white p-6 shadow-sm">
@@ -83,7 +83,6 @@ import { MockPlatformService } from '../../core/services/mock-platform.service';
   `
 })
 export class AdminDashboardComponent {
+  private readonly platform = inject(MockPlatformService);
   readonly overview = this.platform.adminOverview();
-
-  constructor(private readonly platform: MockPlatformService) {}
 }

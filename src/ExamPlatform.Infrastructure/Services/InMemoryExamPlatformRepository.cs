@@ -147,9 +147,8 @@ public sealed class InMemoryExamPlatformRepository : IExamPlatformRepository
 
     public Question AddQuestion(Question question)
     {
-        var normalized = question with { };
-        _questions.Add(normalized);
-        return normalized;
+        _questions.Add(question);
+        return question;
     }
 
     public StudentAttempt StartAttempt(Guid studentId, Guid testSeriesId)

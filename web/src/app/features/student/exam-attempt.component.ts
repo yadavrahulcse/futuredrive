@@ -1,4 +1,4 @@
-import { Component, HostListener, computed, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -8,7 +8,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { MockPlatformService } from '../../core/services/mock-platform.service';
 import { LanguageService } from '../../core/services/language.service';
@@ -27,7 +27,7 @@ import { QuestionRendererComponent } from '../../shared/question-renderer.compon
     MatProgressBarModule,
     MatSidenavModule,
     RouterLink,
-    TranslateModule,
+    TranslatePipe,
     QuestionRendererComponent
   ],
   template: `
@@ -90,15 +90,12 @@ import { QuestionRendererComponent } from '../../shared/question-renderer.compon
   `
 })
 export class ExamAttemptComponent {
+  private readonly platform = inject(MockPlatformService);
+  readonly languageService = inject(LanguageService);
   readonly attempt = this.platform.activeAttempt();
   readonly selectedIndex = signal(0);
   readonly answeredCount = computed(() => 1);
   textAnswer = '';
-
-  constructor(
-    private readonly platform: MockPlatformService,
-    public readonly languageService: LanguageService
-  ) {}
 
   currentQuestion() {
     return this.attempt.questions[this.selectedIndex()];

@@ -46,6 +46,6 @@ export class QuestionRendererComponent {
   constructor(private readonly languageService: LanguageService) {}
 
   localizedText(text: Record<string, string>): string {
-    return text[this.languageService.current] ?? text.en ?? Object.values(text)[0] ?? '';
+    return text[this.languageService.current] ?? text['en'] ?? Object.values(text)[0] ?? '';
   }
 }

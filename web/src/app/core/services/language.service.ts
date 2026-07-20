@@ -8,16 +8,16 @@ export class LanguageService {
   constructor(private readonly translate: TranslateService) {
     const preferred = localStorage.getItem('preferredLanguage') || 'en';
     this.translate.addLangs(this.supportedLanguages);
-    this.translate.setDefaultLang('en');
-    this.translate.use(preferred);
+    this.translate.setFallbackLang('en').subscribe();
+    this.translate.use(preferred).subscribe();
   }
 
   get current(): string {
-    return this.translate.currentLang || this.translate.defaultLang || 'en';
+    return this.translate.currentLang() ?? 'en';
   }
 
   setLanguage(language: string): void {
-    this.translate.use(language);
+    this.translate.use(language).subscribe();
     localStorage.setItem('preferredLanguage', language);
   }
 }

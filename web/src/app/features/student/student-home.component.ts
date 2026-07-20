@@ -3,14 +3,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { MockPlatformService } from '../../core/services/mock-platform.service';
 
 @Component({
   selector: 'app-student-home',
   standalone: true,
-  imports: [MatButtonModule, MatCardModule, MatChipsModule, RouterLink, TranslateModule],
+  imports: [MatButtonModule, MatCardModule, MatChipsModule, RouterLink, TranslatePipe],
   template: `
     <section class="space-y-8 px-4 py-8 lg:px-8">
       <div class="rounded-3xl bg-white p-6 shadow-sm">
