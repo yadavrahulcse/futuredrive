@@ -1,17 +1,15 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: FutureDrive API (MVP)
-  version: "0.2.0"
-  description: Expanded OpenAPI spec for FutureDrive MVP: auth, users, drivers, rides, quotes, bookings, payments, messaging, and admin operations.
+  title: Bharat Competitive Exam Platform API
+  version: 0.1.0
+  description: API scaffold for online competitive exams, question bank management, student attempts, and result analytics.
 servers:
-  - url: https://api.futuredrive.example.com
-security:
-  - bearerAuth: []
+  - url: https://api.exam-platform.example.com
 paths:
-  /auth/send-otp:
+  /api/auth/send-otp:
     post:
-      summary: Send OTP to phone (WhatsApp preferred, fallback to SMS)
       tags: [Auth]
+      summary: Send OTP for sign-in
       requestBody:
         required: true
         content:
@@ -20,15 +18,15 @@ paths:
               $ref: '#/components/schemas/SendOtpRequest'
       responses:
         '200':
-          description: OTP queued for delivery
+          description: OTP accepted for delivery
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SendOtpResponse'
-  /auth/verify-otp:
+  /api/auth/verify-otp:
     post:
-      summary: Verify OTP and create session
       tags: [Auth]
+      summary: Verify OTP and create session
       requestBody:
         required: true
         content:
@@ -42,479 +40,505 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Session'
-  /users/me:
+  /api/catalog/categories:
     get:
-      summary: Get current user profile
-      tags: [Users]
-      security:
-        - bearerAuth: []
+      tags: [Catalog]
+      summary: List exam categories
       responses:
         '200':
-          description: Current user
+          description: Categories returned
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-  /drivers/register:
-    post:
-      summary: Driver signup and document upload (multipart)
-      tags: [Drivers]
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                phone:
-                  type: string
-                vehicle_number:
-                  type: string
-                vehicle_model:
-                  type: string
-                license:
-                  type: string
-                  format: binary
-                rc:
-                  type: string
-                  format: binary
-                aadhaar:
-                  type: string
-                  format: binary
-      responses:
-        '201':
-          description: Driver created (pending verification)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Driver'
-  /rides:
-    post:
-      summary: Create a ride request (passenger)
-      tags: [Rides]
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateRideRequest'
-      responses:
-        '201':
-          description: Ride created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Ride'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+  /api/catalog/exams:
     get:
-      summary: Search/list passenger rides
-      tags: [Rides]
-      security:
-        - bearerAuth: []
+      tags: [Catalog]
+      summary: List exams
       parameters:
         - in: query
-          name: status
+          name: categoryId
           schema:
             type: string
+            format: uuid
       responses:
         '200':
-          description: list of rides
+          description: Exam summaries returned
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Ride'
-  /rides/{rideId}/quotes:
-    post:
-      summary: Driver posts a quote for a ride
-      tags: [Quotes]
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: rideId
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateQuoteRequest'
-      responses:
-        '201':
-          description: Quote created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Quote'
+                  $ref: '#/components/schemas/ExamSummary'
+  /api/catalog/exams/{examId}:
     get:
-      summary: List quotes for a ride (passenger view)
-      tags: [Quotes]
-      security:
-        - bearerAuth: []
+      tags: [Catalog]
+      summary: Get exam detail with test series
       parameters:
         - in: path
-          name: rideId
+          name: examId
           required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: list of quotes
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Quote'
-  /quotes/{quoteId}/select:
-    post:
-      summary: Passenger selects a quote -> creates booking
-      tags: [Bookings]
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: quoteId
-          required: true
-          schema:
-            type: integer
-      responses:
-        '201':
-          description: Booking created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Booking'
-  /bookings/{bookingId}/verify-otp:
-    post:
-      summary: Driver verifies passenger OTP to start ride
-      tags: [Bookings]
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: bookingId
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                otp:
-                  type: string
-      responses:
-        '200':
-          description: OTP validated and booking started
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Booking'
-  /bookings/{bookingId}/cancel:
-    post:
-      summary: Cancel a booking (passenger or driver)
-      tags: [Bookings]
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: bookingId
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason:
-                  type: string
-                cancelled_by:
-                  type: string
-                  enum: [passenger, driver, system]
-      responses:
-        '200':
-          description: Booking cancelled
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Booking'
-  /payments:
-    post:
-      summary: Record payment (UPI) webhook or create payment intent
-      tags: [Payments]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PaymentRequest'
-      responses:
-        '201':
-          description: Payment recorded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Payment'
-  /messages:
-    post:
-      summary: Send mediated message (passenger <-> driver via server)
-      tags: [Messaging]
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MessageRequest'
-      responses:
-        '201':
-          description: Message queued
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Message'
-  /admin/drivers:
-    get:
-      summary: Admin: list drivers and KYC status
-      tags: [Admin]
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: list of drivers
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Driver'
-  /admin/bookings:
-    get:
-      summary: Admin: list bookings with filters
-      tags: [Admin]
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: query
-          name: status
           schema:
             type: string
+            format: uuid
       responses:
         '200':
-          description: list of bookings
+          description: Exam detail returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamDetail'
+  /api/admin/questions:
+    get:
+      tags: [Question Bank]
+      summary: List question bank entries
+      responses:
+        '200':
+          description: Questions returned
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Booking'
+                  $ref: '#/components/schemas/Question'
+    post:
+      tags: [Question Bank]
+      summary: Create a question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQuestionRequest'
+      responses:
+        '201':
+          description: Question created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+  /api/attempts/start:
+    post:
+      tags: [Attempts]
+      summary: Start a student attempt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartAttemptRequest'
+      responses:
+        '200':
+          description: Attempt created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attempt'
+  /api/attempts/{attemptId}:
+    get:
+      tags: [Attempts]
+      summary: Get attempt detail
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Attempt returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attempt'
+  /api/attempts/{attemptId}/answers:
+    post:
+      tags: [Attempts]
+      summary: Save answer during attempt
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveAnswerRequest'
+      responses:
+        '200':
+          description: Answer saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attempt'
+  /api/attempts/{attemptId}/submit:
+    post:
+      tags: [Attempts]
+      summary: Submit attempt and calculate score
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Attempt submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+  /api/results/{attemptId}:
+    get:
+      tags: [Results]
+      summary: Get result detail
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+  /api/admin/overview:
+    get:
+      tags: [Admin]
+      summary: Get admin dashboard overview
+      responses:
+        '200':
+          description: Overview returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOverview'
 components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
   schemas:
+    MultilingualText:
+      type: object
+      additionalProperties:
+        type: string
     SendOtpRequest:
       type: object
-      required: [phone]
+      required: [mobileNumber]
       properties:
-        phone:
+        mobileNumber:
           type: string
-        via:
+        role:
           type: string
-          enum: [whatsapp, sms]
+          enum: [Student, Admin, SuperAdmin]
     SendOtpResponse:
       type: object
       properties:
-        success:
-          type: boolean
-        method:
+        mobileNumber:
+          type: string
+        expiresInSeconds:
+          type: integer
+        transactionId:
           type: string
     VerifyOtpRequest:
       type: object
-      required: [phone, otp]
+      required: [mobileNumber, otp]
       properties:
-        phone:
+        mobileNumber:
           type: string
         otp:
           type: string
+        role:
+          type: string
+          enum: [Student, Admin, SuperAdmin]
     Session:
       type: object
       properties:
-        token:
+        accessToken:
           type: string
-        expires_in:
+        refreshToken:
+          type: string
+        expiresInSeconds:
           type: integer
+        user:
+          $ref: '#/components/schemas/User'
     User:
       type: object
       properties:
         id:
-          type: integer
-        phone:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        mobileNumber:
           type: string
         email:
           type: string
+        role:
+          type: string
+        preferredLanguage:
+          type: string
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
         name:
           type: string
-        language:
+        code:
           type: string
-    Driver:
+    ExamSummary:
       type: object
       properties:
         id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        durationMinutes:
           type: integer
-        phone:
-          type: string
-        name:
-          type: string
-        vehicle_number:
-          type: string
-        vehicle_model:
-          type: string
-        rating:
+        totalMarks:
           type: number
-        kyc_status:
+        categoryName:
           type: string
-    CreateRideRequest:
-      type: object
-      required: [pickup_lat, pickup_lng, drop_lat, drop_lng]
-      properties:
-        pickup_lat:
-          type: number
-        pickup_lng:
-          type: number
-        drop_lat:
-          type: number
-        drop_lng:
-          type: number
-        notes:
-          type: string
-    Ride:
+        languages:
+          type: array
+          items:
+            type: string
+    TestSeries:
       type: object
       properties:
         id:
-          type: integer
-        passenger_id:
-          type: integer
-        pickup_lat:
-          type: number
-        pickup_lng:
-          type: number
-        drop_lat:
-          type: number
-        drop_lng:
-          type: number
-        status:
           type: string
-        created_at:
+          format: uuid
+        title:
           type: string
-          format: date-time
-    CreateQuoteRequest:
-      type: object
-      required: [amount]
-      properties:
-        driver_id:
+        sequenceNumber:
           type: integer
-        amount:
-          type: number
-        eta_minutes:
-          type: integer
-    Quote:
-      type: object
-      properties:
-        id:
-          type: integer
-        ride_id:
-          type: integer
-        driver_id:
-          type: integer
-        amount:
-          type: number
-        eta_minutes:
-          type: integer
-        expires_at:
-          type: string
-          format: date-time
-    Booking:
-      type: object
-      properties:
-        id:
-          type: integer
-        ride_id:
-          type: integer
-        quote_id:
-          type: integer
-        driver_id:
-          type: integer
-        status:
-          type: string
-        otp_required:
+        isFree:
           type: boolean
-        otp_expires_at:
+        releaseDate:
           type: string
           format: date-time
-    PaymentRequest:
-      type: object
-      required: [booking_id, amount]
-      properties:
-        booking_id:
-          type: integer
-        amount:
-          type: number
-        provider:
-          type: string
-        provider_transaction_id:
-          type: string
-    Payment:
+    ExamDetail:
+      allOf:
+        - $ref: '#/components/schemas/ExamSummary'
+        - type: object
+          properties:
+            negativeMarkingRatio:
+              type: number
+            testSeries:
+              type: array
+              items:
+                $ref: '#/components/schemas/TestSeries'
+    QuestionOption:
       type: object
       properties:
         id:
-          type: integer
-        booking_id:
-          type: integer
-        amount:
+          type: string
+          format: uuid
+        text:
+          $ref: '#/components/schemas/MultilingualText'
+        imageUrl:
+          type: string
+        isCorrect:
+          type: boolean
+    Question:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        subjectId:
+          type: string
+          format: uuid
+        type:
+          type: string
+        text:
+          $ref: '#/components/schemas/MultilingualText'
+        imageUrl:
+          type: string
+        audioUrl:
+          type: string
+        explanationText:
+          $ref: '#/components/schemas/MultilingualText'
+        explanationImageUrl:
+          type: string
+        marks:
           type: number
+        negativeMarks:
+          type: number
+        difficulty:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionOption'
+    CreateQuestionRequest:
+      type: object
+      required: [subjectId, type, text, marks]
+      properties:
+        subjectId:
+          type: string
+          format: uuid
+        type:
+          type: string
+        text:
+          $ref: '#/components/schemas/MultilingualText'
+        imageUrl:
+          type: string
+        audioUrl:
+          type: string
+        explanationText:
+          $ref: '#/components/schemas/MultilingualText'
+        explanationImageUrl:
+          type: string
+        marks:
+          type: number
+        negativeMarks:
+          type: number
+        difficulty:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionOption'
+    StartAttemptRequest:
+      type: object
+      required: [studentId, testSeriesId]
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        testSeriesId:
+          type: string
+          format: uuid
+    SaveAnswerRequest:
+      type: object
+      required: [questionId]
+      properties:
+        questionId:
+          type: string
+          format: uuid
+        selectedOptionIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        textAnswer:
+          type: string
+        isMarkedForReview:
+          type: boolean
+        timeSpentSeconds:
+          type: integer
+    AttemptQuestion:
+      type: object
+      properties:
+        questionId:
+          type: string
+          format: uuid
+        section:
+          type: string
+        orderNumber:
+          type: integer
+        question:
+          $ref: '#/components/schemas/Question'
+    Attempt:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        testSeriesId:
+          type: string
+          format: uuid
+        startedAt:
+          type: string
+          format: date-time
+        submittedAt:
+          type: string
+          format: date-time
         status:
           type: string
-    MessageRequest:
-      type: object
-      required: [booking_id, sender_type, content]
-      properties:
-        booking_id:
+        score:
+          type: number
+        switchedTabs:
           type: integer
-        sender_type:
-          type: string
-          enum: [passenger, driver, system]
-        content:
-          type: string
-    Message:
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttemptQuestion'
+    ResultItem:
       type: object
       properties:
-        id:
-          type: integer
-        booking_id:
-          type: integer
-        sender_type:
+        questionId:
           type: string
-        sender_id:
+          format: uuid
+        correct:
+          type: boolean
+        marksAwarded:
+          type: number
+        explanationText:
+          $ref: '#/components/schemas/MultilingualText'
+    Result:
+      type: object
+      properties:
+        attemptId:
+          type: string
+          format: uuid
+        score:
+          type: number
+        totalMarks:
+          type: number
+        correctAnswers:
           type: integer
-        content:
-          type: string
-        created_at:
-          type: string
-          format: date-time
+        incorrectAnswers:
+          type: integer
+        accuracyPercentage:
+          type: number
+        rank:
+          type: integer
+        percentile:
+          type: number
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResultItem'
+    AdminOverview:
+      type: object
+      properties:
+        totalExams:
+          type: integer
+        totalQuestions:
+          type: integer
+        totalAttempts:
+          type: integer
+        completedAttempts:
+          type: integer
+        supportedLanguages:
+          type: array
+          items:
+            type: string

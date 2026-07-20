@@ -1,113 +1,156 @@
--- Initial SQL schema for FutureDrive (Postgres)
--- Note: adapt types and constraints for your DB and extensions (uuid, etc.)
+-- SQL Server schema scaffold for Bharat Competitive Exam Platform
 
-CREATE TABLE users (
-  id BIGSERIAL PRIMARY KEY,
-  phone VARCHAR(20) UNIQUE NOT NULL,
-  email VARCHAR(254),
-  name VARCHAR(200),
-  language VARCHAR(10) DEFAULT 'en',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+CREATE TABLE Users (
+    Id UNIQUEIDENTIFIER PRIMARY KEY,
+    FullName NVARCHAR(200) NOT NULL,
+    MobileNumber NVARCHAR(20) NOT NULL UNIQUE,
+    Email NVARCHAR(254) NULL,
+    Role NVARCHAR(30) NOT NULL,
+    PreferredLanguage NVARCHAR(10) NOT NULL DEFAULT 'en',
+    ConsentAccepted BIT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
 
-CREATE TABLE drivers (
-  id BIGSERIAL PRIMARY KEY,
-  phone VARCHAR(20) UNIQUE NOT NULL,
-  name VARCHAR(200),
-  vehicle_number VARCHAR(50),
-  vehicle_model VARCHAR(100),
-  rating NUMERIC(2,1) DEFAULT 0,
-  is_active BOOLEAN DEFAULT true,
-  kyc_status VARCHAR(50) DEFAULT 'pending',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+CREATE TABLE Categories (
+    Id UNIQUEIDENTIFIER PRIMARY KEY,
+    Name NVARCHAR(150) NOT NULL,
+    Code NVARCHAR(50) NOT NULL UNIQUE,
+    ParentId UNIQUEIDENTIFIER NULL,
+    CONSTRAINT FK_Categories_Parent FOREIGN KEY (ParentId) REFERENCES Categories(Id)
 );
 
-CREATE TABLE driver_docs (
-  id BIGSERIAL PRIMARY KEY,
-  driver_id BIGINT REFERENCES drivers(id) ON DELETE CASCADE,
-  doc_type VARCHAR(50),
-  file_path TEXT,
-  reviewed_by BIGINT,
-  reviewed_at TIMESTAMP WITH TIME ZONE,
-  status VARCHAR(50) DEFAULT 'uploaded'
+CREATE TABLE Subjects (
+    Id UNIQUEIDENTIFIER PRIMARY KEY,
+    CategoryId UNIQUEIDENTIFIER NOT NULL,
+    Name NVARCHAR(150) NOT NULL,
+    LanguageCode NVARCHAR(10) NOT NULL DEFAULT 'en',
+    CONSTRAINT FK_Subjects_Categories FOREIGN KEY (CategoryId) REFERENCES Categories(Id)
 );
 
-CREATE TABLE rides (
-  id BIGSERIAL PRIMARY KEY,
-  passenger_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
-  pickup_lat DOUBLE PRECISION,
-  pickup_lng DOUBLE PRECISION,
-  drop_lat DOUBLE PRECISION,
-  drop_lng DOUBLE PRECISION,
-  status VARCHAR(50) DEFAULT 'requested', -- requested, quoted, confirmed, started, completed, cancelled
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+CREATE TABLE Exams (
+    Id UNIQUEIDENTIFIER PRIMARY KEY,
+    CategoryId UNIQUEIDENTIFIER NOT NULL,
+    Title NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(MAX) NULL,
+    DurationMinutes INT NOT NULL,
+    TotalMarks DECIMAL(10,2) NOT NULL,
+    NegativeMarkingRatio DECIMAL(5,2) NOT NULL DEFAULT 0,
+    SupportedLanguagesJson NVARCHAR(MAX) NOT NULL,
+    Status NVARCHAR(30) NOT NULL,
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT FK_Exams_Categories FOREIGN KEY (CategoryId) REFERENCES Categories(Id),
+    CONSTRAINT FK_Exams_Users FOREIGN KEY (CreatedBy) REFERENCES Users(Id)
 );
 
-CREATE TABLE quotes (
-  id BIGSERIAL PRIMARY KEY,
-  ride_id BIGINT REFERENCES rides(id) ON DELETE CASCADE,
-  driver_id BIGINT REFERENCES drivers(id) ON DELETE SET NULL,
-  amount NUMERIC(10,2) NOT NULL,
-  eta_minutes INTEGER,
-  expires_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+CREATE TABLE Questions (
+    Id UNIQUEIDENTIFIER PRIMARY KEY,
+    SubjectId UNIQUEIDENTIFIER NOT NULL,
+    Type NVARCHAR(50) NOT NULL,
+    TextJson NVARCHAR(MAX) NOT NULL,
+    ImageUrl NVARCHAR(500) NULL,
+    AudioUrl NVARCHAR(500) NULL,
+    ExplanationTextJson NVARCHAR(MAX) NULL,
+    ExplanationImageUrl NVARCHAR(500) NULL,
+    Marks DECIMAL(10,2) NOT NULL,
+    NegativeMarks DECIMAL(10,2) NOT NULL DEFAULT 0,
+    Difficulty NVARCHAR(20) NOT NULL,
+    TagsJson NVARCHAR(MAX) NOT NULL,
+    LanguageCode NVARCHAR(10) NOT NULL DEFAULT 'en',
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT FK_Questions_Subjects FOREIGN KEY (SubjectId) REFERENCES Subjects(Id),
+    CONSTRAINT FK_Questions_Users FOREIGN KEY (CreatedBy) REFERENCES Users(Id)
 );
 
-CREATE TABLE bookings (
-  id BIGSERIAL PRIMARY KEY,
-  ride_id BIGINT REFERENCES rides(id) ON DELETE CASCADE,
-  quote_id BIGINT REFERENCES quotes(id) ON DELETE SET NULL,
-  driver_id BIGINT REFERENCES drivers(id) ON DELETE SET NULL,
-  passenger_paid BOOLEAN DEFAULT false,
-  payment_id BIGINT,
-  status VARCHAR(50) DEFAULT 'pending', -- pending, confirmed, started, completed, cancelled
-  otp_code VARCHAR(10),
-  otp_expires_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+CREATE TABLE QuestionOptions (
+    Id UNIQUEIDENTIFIER PRIMARY KEY,
+    QuestionId UNIQUEIDENTIFIER NOT NULL,
+    OptionTextJson NVARCHAR(MAX) NOT NULL,
+    ImageUrl NVARCHAR(500) NULL,
+    IsCorrect BIT NOT NULL,
+    DisplayOrder INT NOT NULL,
+    CONSTRAINT FK_QuestionOptions_Questions FOREIGN KEY (QuestionId) REFERENCES Questions(Id) ON DELETE CASCADE
 );
 
-CREATE TABLE payments (
-  id BIGSERIAL PRIMARY KEY,
-  booking_id BIGINT REFERENCES bookings(id) ON DELETE SET NULL,
-  amount NUMERIC(10,2),
-  provider VARCHAR(100),
-  provider_transaction_id VARCHAR(200),
-  status VARCHAR(50), -- pending, success, failed
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+CREATE TABLE TestSeries (
+    Id UNIQUEIDENTIFIER PRIMARY KEY,
+    ExamId UNIQUEIDENTIFIER NOT NULL,
+    Title NVARCHAR(200) NOT NULL,
+    SequenceNumber INT NOT NULL,
+    IsFree BIT NOT NULL DEFAULT 1,
+    ReleaseDate DATETIME2 NULL,
+    Status NVARCHAR(30) NOT NULL DEFAULT 'Draft',
+    CONSTRAINT FK_TestSeries_Exams FOREIGN KEY (ExamId) REFERENCES Exams(Id)
 );
 
-CREATE TABLE otp_logs (
-  id BIGSERIAL PRIMARY KEY,
-  booking_id BIGINT REFERENCES bookings(id) ON DELETE CASCADE,
-  phone VARCHAR(20),
-  otp VARCHAR(10),
-  method VARCHAR(20), -- whatsapp, sms
-  sent_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  expires_at TIMESTAMP WITH TIME ZONE
+CREATE TABLE TestSeriesQuestions (
+    TestSeriesId UNIQUEIDENTIFIER NOT NULL,
+    QuestionId UNIQUEIDENTIFIER NOT NULL,
+    SectionName NVARCHAR(100) NOT NULL,
+    OrderNumber INT NOT NULL,
+    PRIMARY KEY (TestSeriesId, QuestionId),
+    CONSTRAINT FK_TestSeriesQuestions_TestSeries FOREIGN KEY (TestSeriesId) REFERENCES TestSeries(Id) ON DELETE CASCADE,
+    CONSTRAINT FK_TestSeriesQuestions_Questions FOREIGN KEY (QuestionId) REFERENCES Questions(Id)
 );
 
-CREATE TABLE messages (
-  id BIGSERIAL PRIMARY KEY,
-  booking_id BIGINT REFERENCES bookings(id) ON DELETE CASCADE,
-  sender_type VARCHAR(20), -- passenger, driver, system
-  sender_id BIGINT,
-  content TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+CREATE TABLE StudentAttempts (
+    Id UNIQUEIDENTIFIER PRIMARY KEY,
+    StudentId UNIQUEIDENTIFIER NOT NULL,
+    TestSeriesId UNIQUEIDENTIFIER NOT NULL,
+    StartedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    SubmittedAt DATETIME2 NULL,
+    Score DECIMAL(10,2) NULL,
+    Status NVARCHAR(30) NOT NULL,
+    SwitchedTabs INT NOT NULL DEFAULT 0,
+    CONSTRAINT FK_StudentAttempts_Users FOREIGN KEY (StudentId) REFERENCES Users(Id),
+    CONSTRAINT FK_StudentAttempts_TestSeries FOREIGN KEY (TestSeriesId) REFERENCES TestSeries(Id)
 );
 
-CREATE TABLE admin_logs (
-  id BIGSERIAL PRIMARY KEY,
-  event_type VARCHAR(100),
-  event_data JSONB,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+CREATE TABLE StudentAnswers (
+    AttemptId UNIQUEIDENTIFIER NOT NULL,
+    QuestionId UNIQUEIDENTIFIER NOT NULL,
+    SelectedOptionIdsJson NVARCHAR(MAX) NULL,
+    TextAnswer NVARCHAR(MAX) NULL,
+    TimeSpentSeconds INT NOT NULL DEFAULT 0,
+    IsMarkedForReview BIT NOT NULL DEFAULT 0,
+    PRIMARY KEY (AttemptId, QuestionId),
+    CONSTRAINT FK_StudentAnswers_Attempts FOREIGN KEY (AttemptId) REFERENCES StudentAttempts(Id) ON DELETE CASCADE,
+    CONSTRAINT FK_StudentAnswers_Questions FOREIGN KEY (QuestionId) REFERENCES Questions(Id)
 );
 
--- Indexes
-CREATE INDEX idx_users_phone ON users(phone);
-CREATE INDEX idx_drivers_phone ON drivers(phone);
-CREATE INDEX idx_rides_status ON rides(status);
-CREATE INDEX idx_bookings_status ON bookings(status);
+CREATE TABLE Translations (
+    Id UNIQUEIDENTIFIER PRIMARY KEY,
+    EntityType NVARCHAR(100) NOT NULL,
+    EntityId UNIQUEIDENTIFIER NOT NULL,
+    FieldName NVARCHAR(100) NOT NULL,
+    LanguageCode NVARCHAR(10) NOT NULL,
+    Value NVARCHAR(MAX) NOT NULL
+);
+
+CREATE TABLE Media (
+    Id UNIQUEIDENTIFIER PRIMARY KEY,
+    Url NVARCHAR(500) NOT NULL,
+    MediaType NVARCHAR(20) NOT NULL,
+    UploadedBy UNIQUEIDENTIFIER NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT FK_Media_Users FOREIGN KEY (UploadedBy) REFERENCES Users(Id)
+);
+
+CREATE TABLE Analytics (
+    AttemptId UNIQUEIDENTIFIER NOT NULL,
+    QuestionId UNIQUEIDENTIFIER NOT NULL,
+    IsCorrect BIT NOT NULL,
+    TimeSpentSeconds INT NOT NULL,
+    ScoreImpact DECIMAL(10,2) NOT NULL,
+    PRIMARY KEY (AttemptId, QuestionId),
+    CONSTRAINT FK_Analytics_Attempts FOREIGN KEY (AttemptId) REFERENCES StudentAttempts(Id) ON DELETE CASCADE,
+    CONSTRAINT FK_Analytics_Questions FOREIGN KEY (QuestionId) REFERENCES Questions(Id)
+);
+
+CREATE INDEX IX_Users_MobileNumber ON Users(MobileNumber);
+CREATE INDEX IX_Exams_CategoryId ON Exams(CategoryId);
+CREATE INDEX IX_Questions_SubjectId ON Questions(SubjectId);
+CREATE INDEX IX_TestSeries_ExamId ON TestSeries(ExamId);
+CREATE INDEX IX_StudentAttempts_TestSeriesId ON StudentAttempts(TestSeriesId);
+CREATE INDEX IX_StudentAttempts_StudentId ON StudentAttempts(StudentId);

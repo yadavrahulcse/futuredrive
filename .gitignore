@@ -1,5 +1,9 @@
-# Node
+# Node / Angular
 node_modules/
+web/node_modules/
+web/.angular/
+web/dist/
+web/coverage/
 
 # Logs
 logs
@@ -12,12 +16,18 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Build
+# Build outputs
 dist/
 build/
+coverage/
+
+# .NET
+**/bin/
+**/obj/
+.vs/
 
 # Android
-/android/.gradle
+a/android/.gradle
 **/android/app/build/
 **/android/build/
 
@@ -28,4 +38,3 @@ build/
 # Env
 .env
 .env.*
-
